@@ -307,6 +307,7 @@ var List = map[string]map[string]*Target{
 			KernelHeaderArch: "riscv",
 		},
 	},
+
 	FreeBSD: {
 		AMD64: {
 			PtrSize:      8,
@@ -662,6 +663,14 @@ func initTarget(target *Target, OS, arch string) {
 	target.initOther = new(sync.Once)
 	target.OS = OS
 	target.Arch = arch
+
+	// Temporal hack for gramine.
+	if OS == Linux && os.Getenv("GRAMINE") != "" {
+		target.ExecutorUsesShmem = false
+		target.ExecutorUsesForkServer = false
+		target.cflags = []string{}
+	}
+
 	if target.KernelArch == "" {
 		target.KernelArch = target.Arch
 	}
