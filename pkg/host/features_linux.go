@@ -5,6 +5,7 @@ package host
 
 import (
 	"fmt"
+	"os"
 	"regexp"
 	"runtime"
 	"runtime/debug"
@@ -40,6 +41,9 @@ func init() {
 }
 
 func checkCoverage() string {
+	if os.Getenv("GRAMINE") != "" {
+		return "syzkaller gramine fuzzing"
+	}
 	if reason := checkDebugFS(); reason != "" {
 		return reason
 	}
