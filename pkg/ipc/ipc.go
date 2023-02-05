@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -556,6 +557,13 @@ func makeCommand(pid int, bin []string, config *Config, inFile, outFile *os.File
 		return nil, fmt.Errorf("failed to create temp dir: %v", err)
 	}
 	dir = osutil.Abs(dir)
+	if os.Getenv("GRAMINE") != "" {
+		executor := strings.Split(filepath.Base(bin[0]), ".")[0]
+		pidStr := fmt.Sprintf(".%v", pid)
+		if err := os.Symlink(executor+".manifest", executor+pidStr+".manifest"); err != nil {
+			log.Fatalf(err.Error())
+		}
+	}
 
 	timeout := config.Timeouts.Program
 	if config.UseForkServer {
@@ -607,7 +615,12 @@ func makeCommand(pid int, bin []string, config *Config, inFile, outFile *os.File
 
 	c.readDone = make(chan []byte, 1)
 
-	cmd := osutil.Command(bin[0], bin[1:]...)
+	var cmd *exec.Cmd
+	if os.Getenv("GRAMINE") != "" {
+		cmd = osutil.Command("gramine-direct", bin[0:]...)
+	} else {
+		cmd = osutil.Command(bin[0], bin[1:]...)
+	}
 	if inFile != nil && outFile != nil {
 		cmd.ExtraFiles = []*os.File{inFile, outFile}
 	}
