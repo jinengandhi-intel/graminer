@@ -454,8 +454,8 @@ int main(int argc, char** argv)
 	if (gramine != NULL && strcmp(gramine, "1") == 0) {
 		int fd;
 
-		if ((fd = open("/logs/stderr.parent.log", O_RDWR | O_APPEND | O_CREAT, 0644)) == -1)
-			fail("open stderr.parent.log failed");
+		if ((fd = open("/logs/stderr.log", O_RDWR | O_APPEND | O_CREAT, 0644)) == -1)
+			fail("open stderr.log failed");
 
 		if (dup2(fd, 2) < 0)
 			fail("dup2(fd, 2) failed");
@@ -535,8 +535,12 @@ int main(int argc, char** argv)
 	}
 
 	int status = 0;
-	if (flag_sandbox_none)
-		status = do_sandbox_none();
+	if (flag_sandbox_none) {
+		if (gramine != NULL && strcmp(gramine, "1") == 0)
+			status = do_sandbox_gramine();
+		else
+			status = do_sandbox_none();
+	}
 #if SYZ_HAVE_SANDBOX_SETUID
 	else if (flag_sandbox_setuid)
 		status = do_sandbox_setuid();
@@ -637,6 +641,18 @@ void parse_env_flags(uint64 flags)
 	flag_wifi = flags & (1 << 13);
 	flag_delay_kcov_mmap = flags & (1 << 14);
 	flag_nic_vf = flags & (1 << 15);
+
+	const char *flag_strs[] = { 
+		"debug", "coverage", "sandbox_setuid", "sandbox_namespace",
+		"sandbox_android", "extra_coverage", "net_injection", "net_devices", 
+		"net_reset", "cgroups", "close_fds", "devlink_pci", 
+		"vhci_injection", "wifi", "delay_kcov_mmap", "nic_vf"
+	};
+	for (int i = 0; i < 16; i++) {
+		debug("flag_%s: %s\n", flag_strs[i], (flags & (1 << i)) ? "true" : "false");
+		if (i == 4)
+			debug("flags_sandbox_none: %s\n", flag_sandbox_none? "true" : "false");
+	}
 }
 
 #if SYZ_EXECUTOR_USES_FORK_SERVER
