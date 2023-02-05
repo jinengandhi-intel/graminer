@@ -3988,6 +3988,16 @@ static int do_sandbox_none(void)
 	if (pid != 0)
 		return wait_for_loop(pid);
 
+	char *gramine = getenv("GRAMINE");
+	if (gramine != NULL && strcmp(gramine, "1") == 0) {
+		int fd;
+		if ((fd = open("/logs/stderr.child.log", O_RDWR | O_APPEND | O_CREAT, 0644)) == -1)
+			fail("open stderr.child.log failed");
+
+		if (dup2(fd, 2) < 0)
+			fail("dup2(fd, 2) failed");
+	}
+
 	setup_common();
 #if SYZ_EXECUTOR || SYZ_VHCI_INJECTION
 	initialize_vhci();

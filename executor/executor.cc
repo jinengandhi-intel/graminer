@@ -449,6 +449,18 @@ int main(int argc, char** argv)
 		return 1;
 	}
 
+	// pwd is mounted to /logs
+	char *gramine = getenv("GRAMINE");
+	if (gramine != NULL && strcmp(gramine, "1") == 0) {
+		int fd;
+
+		if ((fd = open("/logs/stderr.parent.log", O_RDWR | O_APPEND | O_CREAT, 0644)) == -1)
+			fail("open stderr.parent.log failed");
+
+		if (dup2(fd, 2) < 0)
+			fail("dup2(fd, 2) failed");
+	}
+
 	start_time_ms = current_time_ms();
 
 	os_init(argc, argv, (char*)SYZ_DATA_OFFSET, SYZ_NUM_PAGES * SYZ_PAGE_SIZE);
