@@ -3934,7 +3934,13 @@ static int wait_for_loop(int pid)
 	int status = 0;
 	while (waitpid(-1, &status, __WALL) != pid) {
 	}
-	return WEXITSTATUS(status);
+
+	char *gramine = getenv("GRAMINE");
+	if (gramine != NULL && strcmp(gramine, "1") == 0) {
+		return WTERMSIG(status) == SIGPWR ? -1:1;
+	} else {
+		return WEXITSTATUS(status);
+	}
 }
 #endif
 
@@ -4021,6 +4027,10 @@ static int do_sandbox_none(void)
 
 static int do_sandbox_gramine(void)
 {
+	int pid = fork();
+	if (pid != 0)
+		return wait_for_loop(pid);
+
 	loop();
 	doexit(1);
 }
