@@ -535,12 +535,14 @@ int main(int argc, char** argv)
 	}
 
 	int status = 0;
-	if (flag_sandbox_none) {
-		if (gramine != NULL && strcmp(gramine, "1") == 0)
-			status = do_sandbox_gramine();
-		else
-			status = do_sandbox_none();
-	}
+
+	if (gramine != NULL && strcmp(gramine, "1") == 0) {
+		if (!flag_sandbox_none)
+			fail("gramine-fuzzing needs flag_sandbox_none");
+	
+		status = do_sandbox_gramine();
+	} else if (flag_sandbox_none)
+		status = do_sandbox_none();
 #if SYZ_HAVE_SANDBOX_SETUID
 	else if (flag_sandbox_setuid)
 		status = do_sandbox_setuid();
