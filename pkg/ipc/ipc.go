@@ -8,12 +8,14 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
+	"math/rand"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"reflect"
 	"strings"
 	"sync/atomic"
+	"syscall"
 	"time"
 	"unsafe"
 
@@ -289,6 +291,7 @@ func (env *Env) Exec(opts *ExecOpts, p *prog.Prog) (output []byte, info *ProgInf
 	if err0 != nil {
 		env.cmd.close()
 		env.cmd = nil
+
 		return
 	}
 
@@ -580,8 +583,15 @@ func makeCommand(pid int, bin []string, config *Config, inFile, outFile *os.File
 		dir:     dir,
 		outmem:  outmem,
 	}
+
 	defer func() {
 		if c != nil {
+			if os.Getenv("GRAMINE") != "" {
+				executor := strings.Split(filepath.Base(bin[0]), ".")[0]
+				pidStr := fmt.Sprintf(".%v", pid)
+				os.Remove(executor + pidStr + ".manifest")
+			}
+
 			c.close()
 		}
 	}()
@@ -618,6 +628,7 @@ func makeCommand(pid int, bin []string, config *Config, inFile, outFile *os.File
 	var cmd *exec.Cmd
 	if os.Getenv("GRAMINE") != "" {
 		cmd = osutil.Command("gramine-direct", bin[0:]...)
+		cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 	} else {
 		cmd = osutil.Command(bin[0], bin[1:]...)
 	}
@@ -691,7 +702,8 @@ func (c *command) close() {
 		c.wait()
 	}
 	osutil.RemoveAll(c.dir)
-	if os.Getenv("GRAMINE") != "" {
+
+	if os.Getenv("GRAMINE") != "" && c.cmd != nil {
 		executor := c.cmd.Args[1]
 		if err := os.Remove(executor + ".manifest"); err != nil {
 			log.Fatalf(err.Error())
@@ -792,7 +804,17 @@ func (c *command) exec(opts *ExecOpts, progData []byte) (output []byte, hanged b
 		t := time.NewTimer(c.timeout)
 		select {
 		case <-t.C:
-			c.cmd.Process.Kill()
+			if os.Getenv("GRAMINE") != "" {
+				pgid, err := syscall.Getpgid(c.cmd.Process.Pid)
+				if err != nil {
+					log.Fatalf(err.Error())
+				}
+				if err := syscall.Kill(-pgid, syscall.SIGKILL); err != nil {
+					log.Fatalf(err.Error())
+				}
+			} else {
+				c.cmd.Process.Kill()
+			}
 			hang <- true
 		case <-done:
 			t.Stop()
@@ -814,6 +836,23 @@ func (c *command) exec(opts *ExecOpts, progData []byte) (output []byte, hanged b
 		}
 		if reply.done != 0 {
 			exitStatus = int(reply.status)
+
+			if os.Getenv("GRAMINE") != "" && exitStatus != 1 {
+				rnd := fmt.Sprintf("%016x", rand.Uint64())
+				f, err := os.OpenFile("./outputs/crashes/crash-"+rnd, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644)
+				if err != nil {
+					log.Fatal(err)
+				}
+				defer f.Close()
+
+				if _, err = f.WriteString(string(reqData[:])); err != nil {
+					log.Fatal(err)
+				}
+				if _, err = f.WriteString(string(progData[:])); err != nil {
+					log.Fatal(err)
+				}
+			}
+
 			break
 		}
 		callReply := &callReply{}
@@ -844,6 +883,21 @@ func (c *command) exec(opts *ExecOpts, progData []byte) (output []byte, hanged b
 			output = append(output, err.Error()...)
 			output = append(output, '\n')
 		}
+
+		rnd := fmt.Sprintf("%016x", rand.Uint64())
+		f, err := os.OpenFile("./outputs/hangs/hang-"+rnd, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644)
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer f.Close()
+
+		if _, err = f.WriteString(string(reqData[:])); err != nil {
+			log.Fatal(err)
+		}
+		if _, err = f.WriteString(string(progData[:])); err != nil {
+			log.Fatal(err)
+		}
+
 		return
 	}
 	if exitStatus == -1 {
