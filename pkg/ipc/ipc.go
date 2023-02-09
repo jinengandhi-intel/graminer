@@ -691,6 +691,13 @@ func (c *command) close() {
 		c.wait()
 	}
 	osutil.RemoveAll(c.dir)
+	if os.Getenv("GRAMINE") != "" {
+		executor := c.cmd.Args[1]
+		if err := os.Remove(executor + ".manifest"); err != nil {
+			log.Fatalf(err.Error())
+		}
+	}
+
 	if c.inrp != nil {
 		c.inrp.Close()
 	}
@@ -769,6 +776,7 @@ func (c *command) exec(opts *ExecOpts, progData []byte) (output []byte, hanged b
 		err0 = fmt.Errorf("executor %v: failed to write control pipe: %v", c.pid, err)
 		return
 	}
+
 	if progData != nil {
 		if _, err := c.outwp.Write(progData); err != nil {
 			output = <-c.readDone
