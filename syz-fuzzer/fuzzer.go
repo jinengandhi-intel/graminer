@@ -140,6 +140,10 @@ func createIPCConfig(features *host.Features, config *ipc.Config) {
 	if features[host.FeatureWifiEmulation].Enabled {
 		config.Flags |= ipc.FlagEnableWifi
 	}
+
+	if os.Getenv("GRAMINE") != "" {
+		config.Flags &= (^ipc.FlagExtraCover & ^ipc.FlagEnableNetDev & ^ipc.FlagEnableNetReset & ^ipc.FlagEnableCgroups & ^ipc.FlagEnableCloseFds)
+	}
 }
 
 // nolint: funlen
