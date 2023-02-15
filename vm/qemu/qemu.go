@@ -344,11 +344,34 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 		}
 	}
 
+	if os.Getenv("GRAMINE") != "" {
+		manifestFile := filepath.Join(workdir, "syz-executor.manifest.template")
+		if err := osutil.WriteFile(manifestFile, []byte(gramineManifest)); err != nil {
+			return nil, fmt.Errorf("failed to create gramine-manifest file: %v", err)
+		}
+
+		makeFile := filepath.Join(workdir, "Makefile")
+		if err := osutil.WriteFile(makeFile, []byte(gramineMakefile)); err != nil {
+			return nil, fmt.Errorf("failed to create gramine-make file: %v", err)
+		}
+	}
+
 	for i := 0; ; i++ {
 		inst, err := pool.ctor(workdir, sshkey, sshuser, index)
 		if err == nil {
+
+			if os.Getenv("GRAMINE") != "" {
+				if _, err = inst.Copy(filepath.Join(workdir, "syz-executor.manifest.template")); err != nil {
+					return nil, fmt.Errorf("failed to copy manifest template: %v", err)
+				}
+				if _, err = inst.Copy(filepath.Join(workdir, "Makefile")); err != nil {
+					return nil, fmt.Errorf("failed to copy Makefile: %v", err)
+				}
+			}
+
 			return inst, nil
 		}
+
 		// Older qemu prints "could", newer -- "Could".
 		if i < 1000 && strings.Contains(err.Error(), "ould not set up host forwarding rule") {
 			continue
@@ -662,6 +685,10 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 			}
 		}
 	} else {
+		if os.Getenv("GRAMINE") != "" {
+			command = "make" + " && " + "GRAMINE=1 " + command
+		}
+
 		args = []string{"ssh"}
 		args = append(args, sshArgs...)
 		args = append(args, inst.sshuser+"@localhost", "cd "+inst.targetDir()+" && "+command)
@@ -796,4 +823,38 @@ cat > /etc/ssh/sshd_config <<EOF
 EOF
 /usr/sbin/sshd -e -D
 /sbin/halt -f
+`
+
+const gramineManifest = `# syz-executor manifest template
+
+loader.entrypoint = "file:{{ gramine.libos }}"
+libos.entrypoint = "/syz-executor"
+loader.log_level = "{{ log_level }}"
+
+loader.env.LD_LIBRARY_PATH = "/lib"
+loader.env.GRAMINE = "1"
+loader.insecure__use_cmd_line_argv = true
+
+fs.mounts = [
+  { path = "/lib", uri = "file:{{ gramine.runtimedir() }}" },
+  { path = "/syz-executor", uri = "file:{{ pwd }}/syz-executor" },
+  { path = "/logs", uri = "file:{{ pwd }}" },
+]
+`
+
+const gramineMakefile = `# syz-executor makefile
+ifeq ($(DEBUG), 1)
+	GRAMINE_LOG_LEVEL = trace
+else
+	GRAMINE_LOG_LEVEL = error
+endif
+
+syz-executor.manifest: syz-executor.manifest.template
+	gramine-manifest \
+			-Dlog_level=$(GRAMINE_LOG_LEVEL) \
+			-Dpwd=$(shell pwd) \
+			$< $@
+
+clean:
+	rm -rf syz-executor.manifest
 `
