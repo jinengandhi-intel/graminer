@@ -1,6 +1,7 @@
 #! /bin/bash
 
 # Basic dependencies
+DEBIAN_FRONTEND=noninteractive apt update
 
 DEBIAN_FRONTEND=noninteractive apt install -y \
     build-essential \
@@ -36,7 +37,7 @@ DEBIAN_FRONTEND=noninteractive apt install -y \
 # TODO
 
 # Build gramine
-# git clone -b v1.3.1 https://github.com/gramineproject/gramine.git
+git clone -b v1.3.1 https://github.com/gramineproject/gramine.git
 cd gramine
 meson setup build/ --buildtype=debug -Ddirect=enabled -Dsgx=disabled
 ninja -C build/
