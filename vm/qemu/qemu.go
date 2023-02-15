@@ -833,7 +833,7 @@ loader.log_level = "{{ log_level }}"
 
 loader.env.LD_LIBRARY_PATH = "/lib"
 loader.env.GRAMINE = "1"
-loader.insecure__use_cmd_line_argv = true
+loader.insecure__use_cmdline_argv = true
 
 fs.mounts = [
   { path = "/lib", uri = "file:{{ gramine.runtimedir() }}" },
