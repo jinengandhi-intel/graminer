@@ -20,30 +20,52 @@ import (
 )
 
 func init() {
-	checkFeature[FeatureCoverage] = checkCoverage
-	checkFeature[FeatureComparisons] = checkComparisons
-	checkFeature[FeatureExtraCoverage] = checkExtraCoverage
-	checkFeature[FeatureDelayKcovMmap] = checkDelayKcovMmap
-	checkFeature[FeatureSandboxSetuid] = unconditionallyEnabled
-	checkFeature[FeatureSandboxNamespace] = checkSandboxNamespace
-	checkFeature[FeatureSandboxAndroid] = checkSandboxAndroid
-	checkFeature[FeatureFault] = checkFault
-	checkFeature[FeatureLeak] = checkLeak
-	checkFeature[FeatureNetInjection] = checkNetInjection
-	checkFeature[FeatureNetDevices] = unconditionallyEnabled
-	checkFeature[FeatureKCSAN] = checkKCSAN
-	checkFeature[FeatureDevlinkPCI] = checkDevlinkPCI
-	checkFeature[FeatureNicVF] = checkNicVF
-	checkFeature[FeatureUSBEmulation] = checkUSBEmulation
-	checkFeature[FeatureVhciInjection] = checkVhciInjection
-	checkFeature[FeatureWifiEmulation] = checkWifiEmulation
-	checkFeature[Feature802154Emulation] = check802154Emulation
+	if os.Getenv("GRAMINE") != "" {
+		checkFeature[FeatureCoverage] = unconditionallyDisabled
+		checkFeature[FeatureComparisons] = unconditionallyDisabled
+		checkFeature[FeatureExtraCoverage] = unconditionallyDisabled
+		checkFeature[FeatureDelayKcovMmap] = unconditionallyDisabled
+		checkFeature[FeatureSandboxSetuid] = unconditionallyDisabled
+		checkFeature[FeatureSandboxNamespace] = unconditionallyDisabled
+		checkFeature[FeatureSandboxAndroid] = unconditionallyDisabled
+		checkFeature[FeatureFault] = unconditionallyDisabled
+		checkFeature[FeatureLeak] = unconditionallyDisabled
+		checkFeature[FeatureNetInjection] = unconditionallyDisabled
+		checkFeature[FeatureNetDevices] = unconditionallyDisabled
+		checkFeature[FeatureKCSAN] = unconditionallyDisabled
+		checkFeature[FeatureDevlinkPCI] = unconditionallyDisabled
+		checkFeature[FeatureNicVF] = unconditionallyDisabled
+		checkFeature[FeatureUSBEmulation] = unconditionallyDisabled
+		checkFeature[FeatureVhciInjection] = unconditionallyDisabled
+		checkFeature[FeatureWifiEmulation] = unconditionallyDisabled
+		checkFeature[Feature802154Emulation] = unconditionallyDisabled
+	} else {
+		checkFeature[FeatureCoverage] = checkCoverage
+		checkFeature[FeatureComparisons] = checkComparisons
+		checkFeature[FeatureExtraCoverage] = checkExtraCoverage
+		checkFeature[FeatureDelayKcovMmap] = checkDelayKcovMmap
+		checkFeature[FeatureSandboxSetuid] = unconditionallyEnabled
+		checkFeature[FeatureSandboxNamespace] = checkSandboxNamespace
+		checkFeature[FeatureSandboxAndroid] = checkSandboxAndroid
+		checkFeature[FeatureFault] = checkFault
+		checkFeature[FeatureLeak] = checkLeak
+		checkFeature[FeatureNetInjection] = checkNetInjection
+		checkFeature[FeatureNetDevices] = unconditionallyEnabled
+		checkFeature[FeatureKCSAN] = checkKCSAN
+		checkFeature[FeatureDevlinkPCI] = checkDevlinkPCI
+		checkFeature[FeatureNicVF] = checkNicVF
+		checkFeature[FeatureUSBEmulation] = checkUSBEmulation
+		checkFeature[FeatureVhciInjection] = checkVhciInjection
+		checkFeature[FeatureWifiEmulation] = checkWifiEmulation
+		checkFeature[Feature802154Emulation] = check802154Emulation
+	}
+}
+
+func unconditionallyDisabled() string {
+	return "syzkaller gramine fuzzing"
 }
 
 func checkCoverage() string {
-	if os.Getenv("GRAMINE") != "" {
-		return "syzkaller gramine fuzzing"
-	}
 	if reason := checkDebugFS(); reason != "" {
 		return reason
 	}
