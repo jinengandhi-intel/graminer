@@ -328,7 +328,11 @@ func (proc *Proc) executeRaw(opts *ipc.ExecOpts, p *prog.Prog, stat Stat) *ipc.P
 				return nil
 			}
 			if try > 10 {
+                            if os.Getenv("GRAMINE") != "" {
+                                return nil
+                            } else {
 				log.Fatalf("executor %v failed %v times: %v", proc.pid, try, err)
+                            }
 			}
 			log.Logf(4, "fuzzer detected executor failure='%v', retrying #%d", err, try+1)
 			debug.FreeOSMemory()
