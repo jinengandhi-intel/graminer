@@ -410,6 +410,6 @@ var (
 	beforeContextDefault = 1024 << 10
 	afterContext         = 128 << 10
 
-	tickerPeriod         = 10 * time.Second
+	tickerPeriod         = 60 * time.Second
 	waitForOutputTimeout = 10 * time.Second
 )
