@@ -336,6 +336,8 @@ func (proc *Proc) executeRaw(opts *ipc.ExecOpts, p *prog.Prog, stat Stat) *ipc.P
 			continue
 		}
 		log.Logf(2, "result hanged=%v: %s", hanged, output)
+
+		proc.fuzzer.checkGramineError(output, p)
 		return info
 	}
 }

@@ -4,6 +4,7 @@
 package main
 
 import (
+	"bytes"
 	"flag"
 	"fmt"
 	"math/rand"
@@ -66,6 +67,8 @@ type Fuzzer struct {
 
 	checkResult *rpctype.CheckArgs
 	logMu       sync.Mutex
+
+	crashDir string
 }
 
 type FuzzerSnapshot struct {
@@ -285,6 +288,14 @@ func main() {
 		noMutate:                 r.NoMutateCalls,
 		stats:                    make([]uint64, StatCount),
 	}
+
+	if os.Getenv("GRAMINE") != "" {
+		if err := os.MkdirAll("outputs/crashes", os.ModeDir); err != nil {
+			log.Fatal(err)
+		}
+		fuzzer.crashDir = "outputs/crashes"
+	}
+
 	gateCallback := fuzzer.useBugFrames(r, *flagProcs)
 	fuzzer.gate = ipc.NewGate(2**flagProcs, gateCallback)
 
@@ -604,6 +615,44 @@ func (fuzzer *Fuzzer) checkNewCallSignal(p *prog.Prog, info *ipc.CallInfo, call 
 	fuzzer.signalMu.Unlock()
 	fuzzer.signalMu.RLock()
 	return true
+}
+
+func (fuzzer *Fuzzer) checkGramineError(output []byte, p *prog.Prog) {
+	if bytes.Compare(output, []byte("gramine-error")) == 0 {
+		opts := csource.Options{
+			Threaded:   false,
+			Repeat:     false,
+			Procs:      1,
+			Slowdown:   1,
+			Sandbox:    "none",
+			SandboxArg: 0,
+
+			Repro: true,
+			Trace: true,
+		}
+		cProg, err := csource.Write(p, opts)
+		if err != nil {
+			log.Fatal(err)
+		}
+		if formatted, err := csource.Format(cProg); err != nil {
+			log.Fatal(err)
+		} else {
+			cProg = formatted
+		}
+
+		rnd := fmt.Sprintf("%016x", rand.Uint64())
+		if err := osutil.WriteFile(fuzzer.crashDir+"/crash-"+rnd+".c", cProg); err != nil {
+			log.Fatal(err)
+		}
+
+		bin, err := csource.Build(fuzzer.target, cProg)
+		if err != nil {
+			log.Fatal(err)
+		}
+		if err := os.Rename(bin, fuzzer.crashDir+"/crash-"+rnd); err != nil {
+			log.Fatal(err)
+		}
+	}
 }
 
 func signalPrio(p *prog.Prog, info *ipc.CallInfo, call int) (prio uint8) {

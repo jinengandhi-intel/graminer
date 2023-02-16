@@ -838,19 +838,7 @@ func (c *command) exec(opts *ExecOpts, progData []byte) (output []byte, hanged b
 			exitStatus = int(reply.status)
 
 			if os.Getenv("GRAMINE") != "" && exitStatus != 1 {
-				rnd := fmt.Sprintf("%016x", rand.Uint64())
-				f, err := os.OpenFile("./outputs/crashes/crash-"+rnd, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644)
-				if err != nil {
-					log.Fatal(err)
-				}
-				defer f.Close()
-
-				if _, err = f.WriteString(string(reqData[:])); err != nil {
-					log.Fatal(err)
-				}
-				if _, err = f.WriteString(string(progData[:])); err != nil {
-					log.Fatal(err)
-				}
+				output = []byte("gramine-error")
 			}
 
 			break
