@@ -5,6 +5,7 @@ package ipcconfig
 
 import (
 	"flag"
+	"os"
 
 	"github.com/google/syzkaller/pkg/ipc"
 	"github.com/google/syzkaller/prog"
@@ -23,6 +24,13 @@ var (
 
 func Default(target *prog.Target) (*ipc.Config, *ipc.ExecOpts, error) {
 	sysTarget := targets.Get(target.OS, target.Arch)
+
+	if os.Getenv("GRAMINE") != "" {
+		*flagThreaded = false
+		*flagSignal = false
+		*flagSandbox = "none"
+	}
+
 	c := &ipc.Config{
 		Executor: *flagExecutor,
 		Timeouts: sysTarget.Timeouts(*flagSlowdown),
@@ -33,6 +41,7 @@ func Default(target *prog.Target) (*ipc.Config, *ipc.ExecOpts, error) {
 	if *flagDebug {
 		c.Flags |= ipc.FlagDebug
 	}
+
 	sandboxFlags, err := ipc.SandboxToFlags(*flagSandbox)
 	if err != nil {
 		return nil, nil, err
