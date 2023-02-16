@@ -636,20 +636,41 @@ func (inst *instance) targetDir() string {
 }
 
 func (inst *instance) Copy(hostSrc string) (string, error) {
-	base := filepath.Base(hostSrc)
-	vmDst := filepath.Join(inst.targetDir(), base)
-	if inst.target.HostFuzzer {
-		if base == "syz-fuzzer" || base == "syz-execprog" {
-			return hostSrc, nil // we will run these on host
+	var args []string
+	var dst string
+
+	// Hack for Gramine
+	if strings.Contains(hostSrc, "vm:") {
+		if os.Getenv("GRAMINE") == "" {
+			log.Fatalf("Copy(%v) can only be invoked when GRAMINE is set", hostSrc)
 		}
-		if inst.files == nil {
-			inst.files = make(map[string]string)
+
+		vmSrc := filepath.Join(inst.targetDir(), hostSrc[3:])
+		hostDst := filepath.Join(inst.workdir, "..")
+
+		args = append(vmimpl.SCPArgs(inst.debug, inst.sshkey, inst.port), "-r",
+			inst.sshuser+"@localhost:"+vmSrc, hostDst)
+
+		dst = hostDst
+	} else {
+		base := filepath.Base(hostSrc)
+		vmDst := filepath.Join(inst.targetDir(), base)
+		if inst.target.HostFuzzer {
+			if base == "syz-fuzzer" || base == "syz-execprog" {
+				return hostSrc, nil // we will run these on host
+			}
+			if inst.files == nil {
+				inst.files = make(map[string]string)
+			}
+			inst.files[vmDst] = hostSrc
 		}
-		inst.files[vmDst] = hostSrc
+
+		args = append(vmimpl.SCPArgs(inst.debug, inst.sshkey, inst.port),
+			hostSrc, inst.sshuser+"@localhost:"+vmDst)
+
+		dst = vmDst
 	}
 
-	args := append(vmimpl.SCPArgs(inst.debug, inst.sshkey, inst.port),
-		hostSrc, inst.sshuser+"@localhost:"+vmDst)
 	if inst.debug {
 		log.Logf(0, "running command: scp %#v", args)
 	}
@@ -657,7 +678,7 @@ func (inst *instance) Copy(hostSrc string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return vmDst, nil
+	return dst, nil
 }
 
 func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command string) (

@@ -800,6 +800,18 @@ func (mgr *Manager) runInstanceInner(index int, instanceName string) (*report.Re
 		return nil, nil, fmt.Errorf("failed to run fuzzer: %v", err)
 	}
 
+	if os.Getenv("GRAMINE") != "" {
+		go func() {
+			for {
+				time.Sleep(10 * time.Minute)
+				if _, err := inst.Copy("vm:gramine-outputs"); err != nil {
+					return
+				}
+                                log.Logf(0, "Successfully copied")
+			}
+		}()
+	}
+
 	var vmInfo []byte
 	rep := inst.MonitorExecution(outc, errc, mgr.reporter, vm.ExitTimeout)
 	if rep == nil {

@@ -292,10 +292,11 @@ func main() {
 
 	if os.Getenv("GRAMINE") != "" {
 		rand.Seed(time.Now().UnixNano())
-		if err := os.MkdirAll("outputs/crashes", os.ModeDir); err != nil {
+
+		fuzzer.crashDir = "gramine-outputs/crashes"
+		if err := os.MkdirAll(fuzzer.crashDir, 0755); err != nil {
 			log.Fatal(err)
 		}
-		fuzzer.crashDir = "outputs/crashes"
 	}
 
 	gateCallback := fuzzer.useBugFrames(r, *flagProcs)
