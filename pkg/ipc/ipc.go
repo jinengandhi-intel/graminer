@@ -641,9 +641,31 @@ func makeCommand(pid int, bin []string, config *Config, inFile, outFile *os.File
 	cmd.Stdout = inwp
 	if config.Flags&FlagDebug != 0 {
 		close(c.readDone)
-		cmd.Stderr = os.Stdout
+
+		if os.Getenv("GRAMINE") != "" {
+			fd, err := os.OpenFile("gramine-stderr.log", os.O_RDWR|os.O_CREATE, 0644)
+			if err != nil {
+				log.Fatal(err)
+			}
+			defer fd.Close()
+
+			cmd.Stderr = fd
+		} else {
+			cmd.Stderr = os.Stdout
+		}
+
 	} else {
-		cmd.Stderr = wp
+		if os.Getenv("GRAMINE") != "" {
+			fd, err := os.OpenFile("gramine-stderr.log", os.O_RDWR|os.O_CREATE, 0644)
+			if err != nil {
+				log.Fatal(err)
+			}
+			defer fd.Close()
+
+			cmd.Stderr = io.MultiWriter(wp, fd)
+		} else {
+			cmd.Stderr = wp
+		}
 		go func(c *command) {
 			// Read out output in case executor constantly prints something.
 			const bufSize = 128 << 10
@@ -838,6 +860,7 @@ func (c *command) exec(opts *ExecOpts, progData []byte) (output []byte, hanged b
 
 			if os.Getenv("GRAMINE") != "" && exitStatus != 1 {
 				output = []byte("gramine-error")
+				exitStatus = 0
 			}
 
 			break

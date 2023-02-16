@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
+	"regexp"
 	"runtime"
 	"runtime/debug"
 	"sort"
@@ -290,6 +291,7 @@ func main() {
 	}
 
 	if os.Getenv("GRAMINE") != "" {
+		rand.Seed(time.Now().UnixNano())
 		if err := os.MkdirAll("outputs/crashes", os.ModeDir); err != nil {
 			log.Fatal(err)
 		}
@@ -634,6 +636,11 @@ func (fuzzer *Fuzzer) checkGramineError(output []byte, p *prog.Prog) {
 		if err != nil {
 			log.Fatal(err)
 		}
+
+		muteInGramine := regexp.QuoteMeta("  setup_common();") + "(?s).*" + regexp.QuoteMeta("setup_binderfs();")
+		r := regexp.MustCompile(muteInGramine)
+		cProg = r.ReplaceAll(cProg, []byte("/*\n"+r.FindString(string(cProg))+"\n*/"))
+
 		if formatted, err := csource.Format(cProg); err != nil {
 			log.Fatal(err)
 		} else {
@@ -650,6 +657,10 @@ func (fuzzer *Fuzzer) checkGramineError(output []byte, p *prog.Prog) {
 			log.Fatal(err)
 		}
 		if err := os.Rename(bin, fuzzer.crashDir+"/crash-"+rnd); err != nil {
+			log.Fatal(err)
+		}
+
+		if err := os.Rename("gramine-stderr.log", fuzzer.crashDir+"/crash-"+rnd+".log"); err != nil {
 			log.Fatal(err)
 		}
 	}
