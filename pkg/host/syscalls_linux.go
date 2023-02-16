@@ -321,6 +321,10 @@ var syzkallSupport = map[string]func(*prog.Syscall, *prog.Target, string) (bool,
 }
 
 func isSupportedSyzkall(c *prog.Syscall, target *prog.Target, sandbox string) (bool, string) {
+	if os.Getenv("GRAMINE") != "" {
+		return false, "syzkaller gramine fuzzing"
+	}
+
 	sysTarget := targets.Get(target.OS, target.Arch)
 	for _, depCall := range sysTarget.PseudoSyscallDeps[c.CallName] {
 		if ok, reason := isSupportedSyscallName(depCall, target); !ok {
