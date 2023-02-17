@@ -39,6 +39,49 @@ For other OS kernels check:
 - [Tech talks and articles](docs/talks.md)
 - [Research work based on syzkaller](docs/research.md)
 
+## Usage (gramine-fuzzing)
+
+* Running syzkaller
+  * `go>=1.16` must be pre-installed.
+  * [linux kernel](https://github.com/torvalds/linux) must be cloned and built under the path `$LINUX`.
+  * Path to the working directory `$WORKDIR` must be set (e.g., `/syzkaller/workdir`).
+```
+git clone -b gramine-fuzzing https://github.com/ohblee-systems/syzkaller
+cd syzkaller
+
+# Building gramine version $VERSION (e.g., v1.3.1)
+VERSION=v1.3.1
+mkdir images
+ln -s $PWD/tools/create-image.sh $PWD/images/
+ln -s $PWD/tools/create-gramine-image.sh $PWD/images/
+ln -s $PWD/tools/gramine-scripts/build-scripts/$VERSION.sh $PWD/images/
+
+cd images
+./create-gramine-image.sh -v $VERSION -k $LINUX
+cd ..
+
+# Building syzkaller
+GRAMINE=1 make
+
+# Running syzkaller using example config (i.e., tools/gramine-scripts/example.cfg)
+cp tools/gramine-scripts/example.cfg ./
+sed -i "s|\$LINUX|$LINUX|" example.cfg
+sed -i "s|\$WORKDIR|$WORKDIR|" example.cfg
+GRAMINE=1 ./bin/syz-manager -config example.cfg
+```
+Once the fuzzer runs, it saves the crashes into `$WORKDIR/gramine-outputs/crashes`.
+`crash-<hash>.c` contains the c source triggering the bug, `crash-<hash>` is the compiled binary, and `crash-<hash>.log` contains the gramine bug log.
+
+* Reproducing crashes
+```
+ln -s $PWD/tools/gramine-scripts/Makefile $WORKDIR/gramine-outputs/crashes/
+ln -s $PWD/tools/gramine-scripts/crash.manifest.template $WORKDIR/gramine-outputs/crashes/
+
+cd $WORKDIR/gramine-outputs/crashes/
+make CRASH=<hash>
+gramine-direct crash
+```
+
 ## Disclaimer
 
 This is not an official Google product.
