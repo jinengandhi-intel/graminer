@@ -638,22 +638,22 @@ func (fuzzer *Fuzzer) checkGramineError(output []byte, p *prog.Prog) {
 			log.Fatal(err)
 		}
 
-		muteInGramine := regexp.QuoteMeta("  setup_common();") + "(?s).*" + regexp.QuoteMeta("setup_binderfs();")
-		r := regexp.MustCompile(muteInGramine)
-		cProg = r.ReplaceAll(cProg, []byte("/*\n"+r.FindString(string(cProg))+"\n*/"))
-
 		if formatted, err := csource.Format(cProg); err != nil {
 			log.Fatal(err)
 		} else {
 			cProg = formatted
 		}
 
+		muteInGramine := regexp.QuoteMeta("  setup_common();") + "(?s).*" + regexp.QuoteMeta("setup_binderfs();")
+		r := regexp.MustCompile(muteInGramine)
+		cProg = r.ReplaceAll(cProg, []byte("/*\n"+r.FindString(string(cProg))+"\n*/"))
+
 		rnd := fmt.Sprintf("%016x", rand.Uint64())
 		if err := osutil.WriteFile(fuzzer.crashDir+"/crash-"+rnd+".c", cProg); err != nil {
 			log.Fatal(err)
 		}
 
-		bin, err := csource.Build(fuzzer.target, cProg)
+		bin, err := csource.BuildNoWarn(fuzzer.target, cProg)
 		if err != nil {
 			log.Fatal(err)
 		}
