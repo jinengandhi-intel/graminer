@@ -100,4 +100,4 @@ wait_port 10021
 echo "Building gramine..."
 ssh-keygen -f "$HOME/.ssh/known_hosts" -R "[localhost]:10021"
 scp -i $RELEASE.id_rsa -P 10021 $VERSION.sh root@localhost:/root/
-ssh -i $RELEASE.id_rsa -p 10021 -o "StrictHostKeyChecking no" root@localhost "./$VERSION.sh && poweroff -f"
+ssh -i $RELEASE.id_rsa -p 10021 -o "StrictHostKeyChecking no" root@localhost "./$VERSION.sh && apt install -y clang-format && poweroff -f"
