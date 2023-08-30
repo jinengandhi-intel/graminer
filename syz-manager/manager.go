@@ -170,7 +170,7 @@ func RunManager(cfg *mgrconfig.Config) {
 		}
 	}
 
-	crashdir := filepath.Join(cfg.Workdir, "crashes")
+	crashdir := filepath.Join(cfg.Workdir, "gramine-outputs/crashes")
 	osutil.MkdirAll(crashdir)
 
 	reporter, err := report.NewReporter(cfg)
@@ -803,11 +803,11 @@ func (mgr *Manager) runInstanceInner(index int, instanceName string) (*report.Re
 	if os.Getenv("GRAMINE") != "" {
 		go func() {
 			for {
-				time.Sleep(10 * time.Minute)
+				time.Sleep(1 * time.Minute)
 				if _, err := inst.Copy("vm:gramine-outputs"); err != nil {
 					return
 				}
-                                log.Logf(0, "Successfully copied")
+				log.Logf(0, "Successfully copied")
 			}
 		}()
 	}

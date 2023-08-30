@@ -441,10 +441,10 @@ func (mgr *Manager) httpPrio(w http.ResponseWriter, r *http.Request) {
 
 func (mgr *Manager) httpFile(w http.ResponseWriter, r *http.Request) {
 	file := filepath.Clean(r.FormValue("name"))
-	if !strings.HasPrefix(file, "crashes/") && !strings.HasPrefix(file, "corpus/") {
+	/*if !strings.HasPrefix(file, "crashes/") && !strings.HasPrefix(file, "corpus/") {
 		http.Error(w, "oh, oh, oh!", http.StatusInternalServerError)
 		return
-	}
+	}*/
 	file = filepath.Join(mgr.cfg.Workdir, file)
 	f, err := os.Open(file)
 	if err != nil {
@@ -563,7 +563,7 @@ func (mgr *Manager) collectCrashes(workdir string) ([]*UICrashType, error) {
 	mgr.reproRequest <- reproReply
 	repros := <-reproReply
 
-	crashdir := filepath.Join(workdir, "crashes")
+	crashdir := filepath.Join(workdir, "gramine-outputs/crashes")
 	dirs, err := osutil.ListDir(crashdir)
 	if err != nil {
 		return nil, err
@@ -582,10 +582,10 @@ func (mgr *Manager) collectCrashes(workdir string) ([]*UICrashType, error) {
 }
 
 func readCrash(workdir, dir string, repros map[string]bool, start time.Time, full bool) *UICrashType {
-	if len(dir) != 40 {
+	/*if len(dir) != 40 {
 		return nil
-	}
-	crashdir := filepath.Join(workdir, "crashes")
+	}*/
+	crashdir := filepath.Join(workdir, "gramine-outputs/crashes")
 	descFile, err := os.Open(filepath.Join(crashdir, dir, "description"))
 	if err != nil {
 		return nil
@@ -630,21 +630,21 @@ func readCrash(workdir, dir string, repros map[string]bool, start time.Time, ful
 		} else if f == "repro0" || f == "repro1" || f == "repro2" {
 			reproAttempts++
 		} else if f == "strace.log" {
-			strace = filepath.Join("crashes", dir, f)
+			strace = filepath.Join("gramine-outputs/crashes", dir, f)
 		}
 	}
 
 	if full {
 		for _, crash := range crashes {
 			index := strconv.Itoa(crash.Index)
-			crash.Log = filepath.Join("crashes", dir, "log"+index)
+			crash.Log = filepath.Join("gramine-outputs/crashes", dir, "log"+index)
 			if stat, err := os.Stat(filepath.Join(workdir, crash.Log)); err == nil {
 				crash.Time = stat.ModTime()
 				crash.Active = crash.Time.After(start)
 			}
 			tag, _ := ioutil.ReadFile(filepath.Join(crashdir, dir, "tag"+index))
 			crash.Tag = string(tag)
-			reportFile := filepath.Join("crashes", dir, "report"+index)
+			reportFile := filepath.Join("gramine-outputs/crashes", dir, "report"+index)
 			if osutil.IsExist(filepath.Join(workdir, reportFile)) {
 				crash.Report = reportFile
 			}

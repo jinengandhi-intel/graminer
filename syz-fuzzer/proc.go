@@ -327,12 +327,12 @@ func (proc *Proc) executeRaw(opts *ipc.ExecOpts, p *prog.Prog, stat Stat) *ipc.P
 				atomic.AddUint64(&proc.fuzzer.stats[StatBufferTooSmall], 1)
 				return nil
 			}
-			if try > 10 {
-                            if os.Getenv("GRAMINE") != "" {
-                                return nil
-                            } else {
-				log.Fatalf("executor %v failed %v times: %v", proc.pid, try, err)
-                            }
+			if try > 15 {
+				if os.Getenv("GRAMINE") != "" {
+					return nil
+				} else {
+					log.Fatalf("executor %v failed %v times: %v", proc.pid, try, err)
+				}
 			}
 			log.Logf(4, "fuzzer detected executor failure='%v', retrying #%d", err, try+1)
 			debug.FreeOSMemory()

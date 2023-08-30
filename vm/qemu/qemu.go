@@ -125,7 +125,7 @@ type archConfig struct {
 var archConfigs = map[string]*archConfig{
 	"linux/amd64": {
 		Qemu:     "qemu-system-x86_64",
-		QemuArgs: "-enable-kvm -cpu host,migratable=off",
+		QemuArgs: "-enable-kvm",
 		// e1000e fails on recent Debian distros with:
 		// Initialization of device e1000e failed: failed to find romfile "efi-e1000e.rom
 		// But other arches don't use e1000e, e.g. arm64 uses virtio by default.
@@ -134,6 +134,8 @@ var archConfigs = map[string]*archConfig{
 		CmdLine: []string{
 			"root=/dev/sda",
 			"console=ttyS0",
+			"earlyprintk=serial",
+			"net.ifnames=0",
 		},
 	},
 	"linux/386": {
@@ -458,14 +460,29 @@ func (inst *instance) boot() error {
 		"-no-reboot",
 		"-name", fmt.Sprintf("VM-%v", inst.index),
 	}
-	if inst.archConfig.RngDev != "" {
-		args = append(args, "-device", inst.archConfig.RngDev)
-	}
 	templateDir := filepath.Join(inst.workdir, "template")
 	args = append(args, splitArgs(inst.cfg.QemuArgs, templateDir, inst.index)...)
 	args = append(args,
 		"-device", inst.cfg.NetDev+",netdev=net0",
 		"-netdev", fmt.Sprintf("user,id=net0,restrict=on,hostfwd=tcp:127.0.0.1:%v-:22", inst.port))
+
+	cmd_output, err := osutil.RunCmd(1*time.Minute, "", "/bin/bash", "-c", "qemu-system-x86_64 -cpu help", "grep sgx")
+	log.Logf(0, "err: %v", err)
+	str_cmd_output := string(cmd_output)
+	if strings.Contains(str_cmd_output, "sgx") {
+		log.Logf(0, "SGX Present")
+		args = append(args,
+			"-cpu", "host,migratable=off,+sgx,+sgx-debug,+sgx-exinfo,+sgx-kss,+sgx-mode64,+sgx-provisionkey,+sgx-tokenkey,+sgx1,+sgx2,+sgxlc",
+			"-object", "memory-backend-epc,id=epc_mem,size=64M,prealloc=on",
+			"-M", "sgx-epc.0.memdev=epc_mem",
+		)
+	} else {
+		log.Logf(0, "SGX NOT Present")
+		args = append(args,
+			"-cpu", "host,migratable=off",
+		)
+	}
+
 	if inst.image == "9p" {
 		args = append(args,
 			"-fsdev", "local,id=fsdev0,path=/,security_model=none,readonly",
@@ -771,6 +788,7 @@ func (inst *instance) Diagnose(rep *report.Report) ([]byte, bool) {
 			return output, wait
 		}
 	}
+
 	// TODO: we don't need registers on all reports. Probably only relevant for "crashes"
 	// (NULL derefs, paging faults, etc), but is not useful for WARNING/BUG/HANG (?).
 	ret := []byte(fmt.Sprintf("%s Registers:\n", time.Now().Format("15:04:05 ")))
@@ -850,7 +868,8 @@ const gramineManifest = `# syz-executor manifest template
 
 loader.entrypoint = "file:{{ gramine.libos }}"
 libos.entrypoint = "/syz-executor"
-loader.log_level = "{{ log_level }}"
+loader.log_level = "all"
+loader.env.MALLOC_ARENA_MAX = "1"
 
 loader.env.LD_LIBRARY_PATH = "/lib"
 loader.env.GRAMINE = "1"
@@ -861,14 +880,30 @@ fs.mounts = [
   { path = "/syz-executor", uri = "file:{{ pwd }}/syz-executor" },
   { path = "/logs", uri = "file:{{ pwd }}" },
 ]
+
+sgx.enclave_size = "8G"
+sgx.file_check_policy="allow_all_but_log"
+sgx.edmm_enable = true
+
+sgx.trusted_files = [
+  "file:{{ gramine.libos }}/",
+  "file:{{ gramine.runtimedir() }}/",
+  "file:{{ pwd }}/syz-executor",
+]
+
+sgx.allowed_files = [
+
+]
 `
 
 const gramineMakefile = `# syz-executor makefile
-ifeq ($(DEBUG), 1)
-	GRAMINE_LOG_LEVEL = trace
-else
-	GRAMINE_LOG_LEVEL = error
-endif
+
+GRAMINE_LOG_LEVEL = trace
+
+syz-executor.manifest.sgx: syz-executor.manifest
+	gramine-sgx-sign \
+		--manifest $< \
+		--output $<.sgx
 
 syz-executor.manifest: syz-executor.manifest.template
 	gramine-manifest \
@@ -877,5 +912,5 @@ syz-executor.manifest: syz-executor.manifest.template
 			$< $@
 
 clean:
-	rm -rf syz-executor.manifest
+	rm -rf syz-executor.manifest syz-executor.manifest.sgx syz-executor.sig
 `
