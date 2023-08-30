@@ -6,6 +6,7 @@ package vm
 import (
 	"bytes"
 	"fmt"
+	"os"
 	"testing"
 	"time"
 
@@ -74,9 +75,13 @@ func (inst *testInstance) Close() {
 
 func init() {
 	beforeContextDefault = maxErrorLength + 100
-	tickerPeriod = 1 * time.Second
-	waitForOutputTimeout = 3 * time.Second
-
+	if os.Getenv("SGX") != "" {
+		tickerPeriod = 1 * time.Second
+		waitForOutputTimeout = 20 * time.Second
+	} else {
+		tickerPeriod = 1 * time.Second
+		waitForOutputTimeout = 3 * time.Second
+	}
 	ctor := func(env *vmimpl.Env) (vmimpl.Pool, error) {
 		return &testPool{}, nil
 	}

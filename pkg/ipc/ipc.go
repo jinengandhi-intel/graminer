@@ -565,6 +565,13 @@ func makeCommand(pid int, bin []string, config *Config, inFile, outFile *os.File
 		if err := os.Symlink(executor+".manifest", executor+pidStr+".manifest"); err != nil {
 			log.Fatalf(err.Error())
 		}
+
+		if err := os.Symlink(executor+".manifest.sgx", executor+pidStr+".manifest.sgx"); err != nil {
+			log.Fatalf(err.Error())
+		}
+		if err := os.Symlink(executor+".sig", executor+pidStr+".sig"); err != nil {
+			log.Fatalf(err.Error())
+		}
 	}
 
 	timeout := config.Timeouts.Program
@@ -589,6 +596,8 @@ func makeCommand(pid int, bin []string, config *Config, inFile, outFile *os.File
 				executor := strings.Split(filepath.Base(bin[0]), ".")[0]
 				pidStr := fmt.Sprintf(".%v", pid)
 				os.Remove(executor + pidStr + ".manifest")
+				os.Remove(executor + pidStr + ".manifest.sgx")
+				os.Remove(executor + pidStr + ".sig")
 			}
 
 			c.close()
@@ -626,7 +635,12 @@ func makeCommand(pid int, bin []string, config *Config, inFile, outFile *os.File
 
 	var cmd *exec.Cmd
 	if os.Getenv("GRAMINE") != "" {
-		cmd = osutil.Command("gramine-direct", bin[0:]...)
+		osutil.RunCmd(1*time.Minute, "", "/bin/bash", "-c", "mount -o remount,exec /dev")
+		if os.Getenv("SGX") != "" {
+			cmd = osutil.Command("gramine-sgx", bin[0:]...)
+		} else {
+			cmd = osutil.Command("gramine-direct", bin[0:]...)
+		}
 		cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 	} else {
 		cmd = osutil.Command(bin[0], bin[1:]...)
@@ -727,6 +741,12 @@ func (c *command) close() {
 	if os.Getenv("GRAMINE") != "" && c.cmd != nil {
 		executor := c.cmd.Args[1]
 		if err := os.Remove(executor + ".manifest"); err != nil {
+			log.Fatalf(err.Error())
+		}
+		if err := os.Remove(executor + ".manifest.sgx"); err != nil {
+			log.Fatalf(err.Error())
+		}
+		if err := os.Remove(executor + ".sig"); err != nil {
 			log.Fatalf(err.Error())
 		}
 	}

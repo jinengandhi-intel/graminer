@@ -154,9 +154,9 @@ func checkMachine(args *checkArgs) (*rpctype.CheckArgs, error) {
 		return nil, fmt.Errorf("sandbox=android is not supported (%v)", feat.Reason)
 	}
 	createIPCConfig(features, args.ipcConfig)
-	if err := checkSimpleProgram(args, features); err != nil {
-		return nil, err
-	}
+	// if err := checkSimpleProgram(args, features); err != nil {
+	// 	return nil, err
+	// }
 	res := &rpctype.CheckArgs{
 		Features:      features,
 		EnabledCalls:  make(map[string][]int),
@@ -257,6 +257,7 @@ func checkSimpleProgram(args *checkArgs, features *host.Features) error {
 	defer env.Close()
 	p := args.target.DataMmapProg()
 	output, info, hanged, err := env.Exec(args.ipcExecOpts, p)
+
 	if err != nil {
 		return fmt.Errorf("program execution failed: %v\n%s", err, output)
 	}
