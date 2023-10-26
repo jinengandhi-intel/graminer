@@ -50,7 +50,7 @@ DEBIAN_FRONTEND=noninteractive apt install -y \
 # TODO
 
 # Build gramine
-git clone --branch v1.5 https://github.com/gramineproject/gramine.git
+git clone https://github.com/gramineproject/gramine.git
 cd gramine
 mkdir -p driver/asm
 cd driver/asm
