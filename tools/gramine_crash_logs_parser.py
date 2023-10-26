@@ -71,7 +71,7 @@ def check_and_copy_crashes(c_hash, desc, known_crashes, known_hashes):
         copy_files(c_hash, res, count)
     else:
         if known_crashes.values():
-            issue_list = [int(k_v.split("_")[1]) for k_c, k_v in known_crashes.items() if k_c != "lost connection to test machine\n"]
+            issue_list = [int(os.path.basename(k_v).split("_")[1]) for k_c, k_v in known_crashes.items() if k_c != "lost connection to test machine\n"]
             if not issue_list:
                 issue_count = "1"
             else:
