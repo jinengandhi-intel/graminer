@@ -887,6 +887,7 @@ fs.mounts = [
 sgx.enclave_size = "8G"
 sgx.file_check_policy="allow_all_but_log"
 sgx.edmm_enable = true
+sgx.use_exinfo = true
 
 sgx.trusted_files = [
   "file:{{ gramine.libos }}/",
