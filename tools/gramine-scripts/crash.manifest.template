@@ -8,6 +8,14 @@ loader.env.LD_LIBRARY_PATH = "/lib"
 loader.env.GRAMINE = "1"
 loader.insecure__use_cmdline_argv = true
 
+loader.env.MALLOC_ARENA_MAX = "1"
+
+sgx.enclave_size = "8G"
+sgx.file_check_policy="allow_all_but_log"
+sgx.edmm_enable = true
+sgx.use_exinfo = true
+
+
 fs.mounts = [
   { path = "/lib", uri = "file:{{ gramine.runtimedir() }}" },
   { path = "/crash-{{ crash }}", uri = "file:{{ pwd }}/crash-{{ crash }}" },

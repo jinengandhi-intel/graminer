@@ -6,6 +6,11 @@ else
     GRAMINE_LOG_LEVEL = error
 endif
 
+crash.manifest.sgx: crash.manifest
+	gramine-sgx-sign \
+		--manifest $< \
+		--output $<.sgx
+
 crash.manifest: crash.manifest.template
 	gramine-manifest \
 	    -Dlog_level=$(GRAMINE_LOG_LEVEL) \
@@ -14,4 +19,4 @@ crash.manifest: crash.manifest.template
 	    $< $@
 
 clean:
-	rm -rf crash.manifest
+	rm -rf *.token *.sig *.manifest.sgx *.manifest
