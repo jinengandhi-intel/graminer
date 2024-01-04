@@ -890,7 +890,7 @@ sgx.edmm_enable = true
 sgx.use_exinfo = true
 
 sgx.trusted_files = [
-  "file:{{ gramine.libos }}/",
+  "file:{{ gramine.libos }}",
   "file:{{ gramine.runtimedir() }}/",
   "file:{{ pwd }}/syz-executor",
 ]
