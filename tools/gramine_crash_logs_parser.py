@@ -129,17 +129,5 @@ if __name__ == "__main__":
     curr_dir = os.getcwd()
     test_run = True
     wait_count = 0
-    while test_run:
-        hashes_list = get_crash_list(workdir)
-        crash_analysis(workdir, hashes_list)
-        print("Sleeping for 100 sec....")
-        time.sleep(100)
-        if (not check_syz_manager_process()) and (wait_count >= 2):
-            print("Will be exiting now")
-            test_run = False
-        if check_syz_manager_process():
-            wait_count = 0
-        else:
-            wait_count +=1
-    os.chdir(workdir)
-
+    hashes_list = get_crash_list(workdir)
+    crash_analysis(workdir, hashes_list)
