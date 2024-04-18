@@ -108,5 +108,5 @@ sleep 30s
 
 echo "Building gramine..."
 ssh-keygen -f "$HOME/.ssh/known_hosts" -R "[localhost]:10021"
-scp -i $RELEASE.id_rsa -P 10021 $VERSION.sh root@localhost:/root/
+scp -i $RELEASE.id_rsa -P 10021 -o "StrictHostKeyChecking no" $VERSION.sh root@localhost:/root/
 ssh -i $RELEASE.id_rsa -p 10021 -o "StrictHostKeyChecking no" root@localhost "./$VERSION.sh && export http_proxy=http://proxy-dmz.intel.com:911 && export https_proxy=http://proxy-dmz.intel.com:912 && apt install -y clang-format && poweroff -f"
