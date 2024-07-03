@@ -26,6 +26,7 @@ DEBIAN_FRONTEND=noninteractive apt install -y \
     python3-cryptography \
     python3-pip \
     python3-protobuf \
+    python3-voluptuous \
     cmake \
     pkg-config \
     strace
