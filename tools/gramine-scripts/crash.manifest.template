@@ -1,6 +1,4 @@
 # crash manifest template
-
-loader.entrypoint = "file:{{ gramine.libos }}"
 libos.entrypoint = "crash-{{ crash }}"
 loader.log_level = "{{ log_level }}"
 
