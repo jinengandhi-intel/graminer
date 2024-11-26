@@ -53,11 +53,7 @@ DEBIAN_FRONTEND=noninteractive apt install -y \
 # Build gramine
 git clone https://github.com/gramineproject/gramine.git
 cd gramine
-mkdir -p driver/asm
-cd driver/asm
-wget --timeout=10 -O sgx.h https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/plain/arch/x86/include/uapi/asm/sgx.h?h=v5.11
-cd ../..
-meson setup build/ --buildtype=debug -Ddirect=enabled -Dsgx=enabled -Dsgx_driver_include_path=/root/gramine/driver
+meson setup build/ --buildtype=debug -Ddirect=enabled -Dsgx=enabled
 ninja -C build/
 ninja -C build/ install
 gramine-sgx-gen-private-key -f
