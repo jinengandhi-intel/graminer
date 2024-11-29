@@ -3,8 +3,12 @@
 export http_proxy="http://proxy-dmz.intel.com:911"
 export https_proxy="http://proxy-dmz.intel.com:912"
 
+echo 'deb http://deb.debian.org/debian bullseye-backports main' > /etc/apt/sources.list.d/backports.list
+
 # Basic dependencies
 DEBIAN_FRONTEND=noninteractive apt update
+
+DEBIAN_FRONTEND=noninteractive apt-get install -y -t bullseye-backports linux-libc-dev
 
 DEBIAN_FRONTEND=noninteractive apt install -y \
     build-essential \
@@ -57,4 +61,3 @@ meson setup build/ --buildtype=debug -Ddirect=enabled -Dsgx=enabled
 ninja -C build/
 ninja -C build/ install
 gramine-sgx-gen-private-key -f
-

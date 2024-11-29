@@ -869,7 +869,6 @@ EOF
 
 const gramineManifest = `# syz-executor manifest template
 
-loader.entrypoint = "file:{{ gramine.libos }}"
 libos.entrypoint = "/syz-executor"
 loader.log_level = "all"
 loader.env.MALLOC_ARENA_MAX = "1"
